@@ -1,3 +1,5 @@
+import { IS_TESTNET } from "./env";
+
 /** UI will go into "halt mode" if `true`. */
 export const IS_HALTED = false;
 
@@ -35,7 +37,12 @@ export const Announcement:
       isWarning: true,
     }
   : {
-      enTextOrLocalizationPath: "frontier.description",
+      enTextOrLocalizationPath: "celestia.description",
+      link: {
+        enTextOrLocalizationKey: "celestia.link",
+        url: "https://genesis.celestia.org/",
+        isExternal: true,
+      },
     };
 
 // Past localstorage keys:
@@ -47,9 +54,12 @@ export const BUY_OSMO_TRANSAK = true;
 /** Blacklists pools out at the query level. Marks them as non existant. */
 export const BlacklistedPoolIds: string[] = ["895"];
 
+/** Cosmwasm Code Ids confirmed to be transmuter pools in current env. */
+export const TransmuterPoolCodeIds = IS_TESTNET ? ["3084"] : ["148"];
+
 export const RecommendedSwapDenoms = [
   "OSMO",
-  "USDC",
+  "USDC.axl",
   "USDT",
   "ATOM",
   "WBTC",

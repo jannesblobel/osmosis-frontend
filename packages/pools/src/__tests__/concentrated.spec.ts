@@ -1,14 +1,13 @@
 import { Dec, Int } from "@keplr-wallet/unit";
-import { LiquidityDepth } from "@osmosis-labs/math";
+import { BigDec, LiquidityDepth } from "@osmosis-labs/math";
 
 import {
-  AmountsDataProvider,
   ConcentratedLiquidityPool,
   ConcentratedLiquidityPoolRaw,
   TickDataProvider,
   TickDepths,
 } from "../concentrated";
-import { NotEnoughLiquidityError } from "../errors";
+import { NotEnoughLiquidityError, validateDenoms } from "../errors";
 
 export class MockTickProvider implements TickDataProvider {
   async getTickDepthsTokenOutGivenIn(
@@ -25,6 +24,7 @@ export class MockTickProvider implements TickDataProvider {
         ) as LiquidityDepth[],
         isMaxTicks: true,
         currentLiquidity: new Dec(100),
+        currentSqrtPrice: new BigDec(100),
         currentTick: new Int(0),
       };
     } else {
@@ -35,6 +35,7 @@ export class MockTickProvider implements TickDataProvider {
         ) as LiquidityDepth[],
         isMaxTicks: true,
         currentLiquidity: new Dec(100),
+        currentSqrtPrice: new BigDec(100),
         currentTick: new Int(0),
       };
     }
@@ -50,6 +51,7 @@ export class MockTickProvider implements TickDataProvider {
         allTicks: [],
         isMaxTicks: false,
         currentLiquidity: new Dec(100),
+        currentSqrtPrice: new BigDec(100),
         currentTick: new Int(0),
       };
     } else {
@@ -58,28 +60,10 @@ export class MockTickProvider implements TickDataProvider {
         allTicks: [],
         isMaxTicks: false,
         currentLiquidity: new Dec(100),
+        currentSqrtPrice: new BigDec(100),
         currentTick: new Int(0),
       };
     }
-  }
-}
-
-export class MockAmountProvider implements AmountsDataProvider {
-  async getPoolAmounts(): Promise<{ token0Amount: Int; token1Amount: Int }> {
-    return { token0Amount: new Int(0), token1Amount: new Int(0) };
-  }
-}
-
-/** This is an extension simply to gain access to protected methods */
-class TestPool extends ConcentratedLiquidityPool {
-  constructor(
-    ...args: ConstructorParameters<typeof ConcentratedLiquidityPool>
-  ) {
-    super(...args);
-  }
-
-  validateDenoms(...denoms: string[]) {
-    return super.validateDenoms(...denoms);
   }
 }
 
@@ -88,17 +72,17 @@ const raw1: ConcentratedLiquidityPoolRaw = JSON.parse(
 );
 
 describe("ConcentratedLiquidityPool", () => {
-  let p: TestPool;
+  let p: ConcentratedLiquidityPool;
   beforeEach(() => {
-    p = new TestPool(raw1, new MockTickProvider(), new MockAmountProvider());
+    p = new ConcentratedLiquidityPool(raw1, new MockTickProvider());
   });
 
   it("validateDenoms: properly validates denoms", () => {
-    expect(() => p.validateDenoms("uosmo", "uion")).not.toThrow();
-    expect(() => p.validateDenoms("uion", "uosmo")).not.toThrow();
-    expect(() => p.validateDenoms("uosmo", "uosmo")).toThrow();
-    expect(() => p.validateDenoms("uion", "uion")).toThrow();
-    expect(() => p.validateDenoms("uion", "someotherasset")).toThrow();
+    expect(() => validateDenoms(p, "uosmo", "uion")).not.toThrow();
+    expect(() => validateDenoms(p, "uion", "uosmo")).not.toThrow();
+    expect(() => validateDenoms(p, "uosmo", "uosmo")).toThrow();
+    expect(() => validateDenoms(p, "uion", "uion")).toThrow();
+    expect(() => validateDenoms(p, "uion", "someotherasset")).toThrow();
   });
 });
 
@@ -157,8 +141,7 @@ describe("ConcentratedLiquidityPool.getTokenOutByTokenIn", () => {
 
     mockPool = new ConcentratedLiquidityPool(
       mockClPool,
-      tickDataProvider as any,
-      new MockAmountProvider()
+      tickDataProvider as any
     );
   });
 
@@ -167,6 +150,7 @@ describe("ConcentratedLiquidityPool.getTokenOutByTokenIn", () => {
       allTicks: mockTicks,
       isMaxTicks: false,
       currentLiquidity: mockClPool.current_tick_liquidity,
+      currentSqrtPrice: new BigDec(100),
       currentTick: new Int(0),
     });
 
@@ -187,30 +171,35 @@ describe("ConcentratedLiquidityPool.getTokenOutByTokenIn", () => {
         allTicks: [],
         isMaxTicks: false,
         currentLiquidity: mockClPool.current_tick_liquidity,
+        currentSqrtPrice: new BigDec(mockClPool.current_sqrt_price),
         currentTick: new Int(0),
       })
       .mockResolvedValueOnce({
         allTicks: [],
         isMaxTicks: false,
         currentLiquidity: mockClPool.current_tick_liquidity,
+        currentSqrtPrice: new BigDec(mockClPool.current_sqrt_price),
         currentTick: new Int(0),
       })
       .mockResolvedValueOnce({
         allTicks: [],
         isMaxTicks: false,
         currentLiquidity: mockClPool.current_tick_liquidity,
+        currentSqrtPrice: new BigDec(mockClPool.current_sqrt_price),
         currentTick: new Int(0),
       })
       .mockResolvedValueOnce({
         allTicks: [],
         isMaxTicks: false,
         currentLiquidity: mockClPool.current_tick_liquidity,
+        currentSqrtPrice: new BigDec(mockClPool.current_sqrt_price),
         currentTick: new Int(0),
       })
       .mockResolvedValueOnce({
         allTicks: mockTicks.slice(0, 1),
         isMaxTicks: false,
         currentLiquidity: mockClPool.current_tick_liquidity,
+        currentSqrtPrice: new BigDec(mockClPool.current_sqrt_price),
         currentTick: new Int(0),
       });
 
@@ -231,12 +220,14 @@ describe("ConcentratedLiquidityPool.getTokenOutByTokenIn", () => {
         allTicks: [],
         isMaxTicks: false,
         currentLiquidity: new Dec(100),
+        currentSqrtPrice: new BigDec(100),
         currentTick: new Int(0),
       })
       .mockResolvedValueOnce({
         allTicks: [],
         isMaxTicks: true,
         currentLiquidity: new Dec(100),
+        currentSqrtPrice: new BigDec(100),
         currentTick: new Int(0),
       });
 
